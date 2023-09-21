@@ -402,6 +402,8 @@ class Webuntis extends utils.Adapter {
        }
 
 
+       let homeworkTable = [];
+
        let homeworks = obj.homeworks;
        this.log.debug("setHomework json: " + homeworkJson);
 
@@ -492,6 +494,7 @@ class Webuntis extends utils.Adapter {
             await this.setStateAsync('homework.' + index + '.id', homework.id, true);
 
             //Fach
+            let fachText = '';
             for(const lesson of lessons) 
             {
                 if(lesson.id == homework.lessonId)
@@ -511,7 +514,8 @@ class Webuntis extends utils.Adapter {
                     ).catch((error) => {
                         this.log.error(error);
                     });
-                    await this.setStateAsync('homework.' + index + '.Fach', this.translateByString(lesson.subject), true);
+                    fachText = this.translateByString(lesson.subject);
+                    await this.setStateAsync('homework.' + index + '.Fach', fachText, true);
                     break;
                 }
             }
@@ -521,10 +525,38 @@ attachments
 completed
 remark
             */
-        
+            
+            homeworkTable.push
+            (
+                {
+                    Index: index,
+                    Id: homework.id,
+                    DueDate: homework.dueDate,
+                    Date: homework.Date,
+                    Text: homework.text,
+                    Fach: fachText
+                }
+            );
 
             index++;
          }
+
+         await this.setObjectNotExistsAsync('homework.Table', {
+            type: 'state',
+            common: {
+                name: 'Table',
+                role: 'value',
+                type: 'string',
+                write: false,
+                read: true,
+            },
+            native: {},
+        }
+        ).catch((error) => {
+            this.log.error(error);
+        });
+
+        await this.setStateAsync('homework.Table', JSON.stringify(homeworkTable), true);
 
     //     for(const homework of fromAPI) {
 
