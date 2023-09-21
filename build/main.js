@@ -4,7 +4,11 @@
  */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -21,14 +25,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 // The adapter-core module gives you access to the core ioBroker functions
 // you need to create an adapter
 const utils = __importStar(require("@iobroker/adapter-core"));
-const webuntis_1 = __importDefault(require("webuntis"));
+const webuntis_1 = __importStar(require("webuntis"));
 // Load your modules here, e.g.:
 // import * as fs from "fs";
 class Webuntis extends utils.Adapter {
@@ -42,6 +43,21 @@ class Webuntis extends utils.Adapter {
         this.timetableDate = new Date();
         this.class_id = 0;
     }
+    translateByString(val) {
+        let text = val;
+        let translations = this.config.translationString.split(';');
+        translations.forEach(translation => {
+            if (translation.trim().startsWith(val)) {
+                this.log.debug("startsWith OK: " + val);
+                if (translation.split('=')[0].trim() === val) {
+                    this.log.debug("startsWith OK 2: " + val);
+                    this.log.debug(translation.split('=')[1].trim());
+                    text = translation.split('=')[1].trim();
+                }
+            }
+        });
+        return text;
+    }
     /**
      * Is called when databases are connected and adapter received configuration.
      */
@@ -54,38 +70,36 @@ class Webuntis extends utils.Adapter {
         }
         else {
             if (this.config.anonymous) {
-                if (this.config.class == '') {
-                    this.log.error('No class set');
-                }
-                else {
-                    //Anonymous login startet
-                    const untis = new webuntis_1.default.WebUntisAnonymousAuth(this.config.school, this.config.baseUrl);
-                    untis.login().then(async () => {
-                        this.log.debug('Anonymous Login sucessfully');
-                        //search class id
-                        await untis.getClasses().then((classes) => {
-                            for (const objClass of classes) {
-                                if (objClass.name == this.config.class) {
-                                    this.log.debug('Class found with id:' + objClass.id);
-                                    this.class_id = objClass.id;
-                                }
-                            }
-                        }).catch(async (error) => {
-                            this.log.error(error);
-                            this.log.error('Login WebUntis failed');
-                            await this.setStateAsync('info.connection', false, true);
-                        });
-                        if (this.class_id > 0) {
-                            // Now we can start
-                            this.readDataFromWebUntis();
-                        }
-                        else {
-                            this.log.error('Class not found');
-                        }
-                    }).catch(err => {
-                        this.log.error(err);
-                    });
-                }
+                // if (this.config.class == '') {
+                //     this.log.error('No class set');
+                // } else {
+                //     //Anonymous login startet
+                //     const untis = new APIWebUntis.WebUntisAnonymousAuth(this.config.school, this.config.baseUrl);
+                //     untis.login().then( async ()=> {
+                //         this.log.debug('Anonymous Login sucessfully');
+                //         //search class id
+                //         await untis.getClasses().then( (classes) => {
+                //             for (const objClass of classes) {
+                //                 if (objClass.name == this.config.class) {
+                //                     this.log.debug('Class found with id:' + objClass.id)
+                //                     this.class_id = objClass.id
+                //                 }
+                //             }
+                //         }).catch(async error => {
+                //             this.log.error(error);
+                //             this.log.error('Login WebUntis failed');
+                //             await this.setStateAsync('info.connection', false, true)
+                //         });
+                //         if(this.class_id > 0) {
+                //             // Now we can start
+                //             this.readDataFromWebUntis()
+                //         } else {
+                //             this.log.error('Class not found');
+                //         }
+                //     }).catch(err => {
+                //         this.log.error(err);
+                //     })
+                // }
             }
             else {
                 // Testen ob der Login funktioniert
@@ -96,11 +110,25 @@ class Webuntis extends utils.Adapter {
                     this.log.error('No password set');
                 }
                 else {
-                    this.log.debug('Api login started');
+                    this.log.debug('Api login started MHI TEST 1');
                     // Test to login to WebUntis
-                    const untis = new webuntis_1.default(this.config.school, this.config.username, this.config.client_secret, this.config.baseUrl);
+                    const untis = new webuntis_1.WebUntis(this.config.school, this.config.username, this.config.client_secret, this.config.baseUrl);
                     untis.login().then(async () => {
                         this.log.debug('WebUntis Login erfolgreich');
+                        // await untis.getClasses().then( (classes) => {
+                        //     for (const objClass of classes) {
+                        //         this.log.debug("Klassenname: " + objClass.name + " ID: " + objClass.id);
+                        //         if (objClass.name == this.config.class) {
+                        //             this.log.debug('Class found with id:' + objClass.id)
+                        //             this.class_id = objClass.id
+                        //         }
+                        //     }
+                        // }).catch(async error => {
+                        //     this.log.error(error);
+                        //     this.log.error('Login WebUntis failed');
+                        //     await this.setStateAsync('info.connection', false, true)
+                        // });
+                        this.class_id = 375;
                         // Now we can start
                         this.readDataFromWebUntis();
                     }).catch(async (error) => {
@@ -136,14 +164,16 @@ class Webuntis extends utils.Adapter {
         }, this.getMillisecondsToNextFullHour());
     }
     readDataFromWebUntis() {
+        this.log.debug('readDataFromWebUntis 1');
         if (this.config.anonymous) {
+            this.log.debug('readDataFromWebUntis 2');
             const untis = new webuntis_1.default.WebUntisAnonymousAuth(this.config.school, this.config.baseUrl);
             untis.login().then(async () => {
                 this.log.debug('WebUntis Anonymous Login erfolgreich');
                 await this.setStateAsync('info.connection', true, true);
                 //Start the loop, we have an session
                 this.log.debug('Lese Timetable 0');
-                untis.getTimetableFor(new Date(), this.class_id, webuntis_1.default.TYPES.CLASS).then(async (timetable) => {
+                untis.getTimetableFor(new Date(), this.class_id, webuntis_1.WebUntis.TYPES.CLASS).then(async (timetable) => {
                     // Now we can start
                     //this.readDataFromWebUntis()
                     if (timetable.length > 0) {
@@ -155,7 +185,7 @@ class Webuntis extends utils.Adapter {
                         //Not timetable found, search next workingday
                         this.log.info('No timetable Today, search next working day');
                         this.timetableDate = this.getNextWorkDay(new Date());
-                        await untis.getTimetableFor(this.timetableDate, this.class_id, webuntis_1.default.TYPES.CLASS).then(async (timetable) => {
+                        await untis.getTimetableFor(this.timetableDate, this.class_id, webuntis_1.WebUntis.TYPES.CLASS).then(async (timetable) => {
                             this.log.info('Timetable found on next workind day');
                             await this.setTimeTable(timetable, 0);
                         }).catch(async (error) => {
@@ -166,7 +196,7 @@ class Webuntis extends utils.Adapter {
                     //Next day
                     this.log.debug('Lese Timetable +1');
                     this.timetableDate.setDate(this.timetableDate.getDate() + 1);
-                    untis.getTimetableFor(this.timetableDate, this.class_id, webuntis_1.default.TYPES.CLASS).then(async (timetable) => {
+                    untis.getTimetableFor(this.timetableDate, this.class_id, webuntis_1.WebUntis.TYPES.CLASS).then(async (timetable) => {
                         await this.setTimeTable(timetable, 1);
                     }).catch(async (error) => {
                         this.log.error('Cannot read Timetable data from +1 - possible block by scool');
@@ -180,10 +210,39 @@ class Webuntis extends utils.Adapter {
             });
         }
         else {
-            const untis = new webuntis_1.default(this.config.school, this.config.username, this.config.client_secret, this.config.baseUrl);
+            this.log.debug('readDataFromWebUntis 3');
+            const untis = new webuntis_1.WebUntis(this.config.school, this.config.username, this.config.client_secret, this.config.baseUrl);
             untis.login().then(async () => {
-                this.log.debug('WebUntis Login erfolgreich');
+                this.log.debug('WebUntis Login erfolgreich MHI TEST');
                 await this.setStateAsync('info.connection', true, true);
+                this.log.debug('Lese getHomeWorksFor start');
+                let endDate = new Date();
+                endDate.setMonth(endDate.getMonth() + 1);
+                this.log.debug('Lese getHomeWorksFor endDate: ' + endDate);
+                this.log.debug('Class ID: ' + this.class_id);
+                untis.getHomeWorkAndLessons(new Date(), endDate).then((homework) => {
+                    this.log.debug('getHomeWorksFor from API');
+                    this.log.debug(JSON.stringify(homework));
+                    this.setHomework(homework);
+                }).catch(async (error) => {
+                    this.log.info('Cannot read getHomeWorksFor');
+                    this.log.debug(error);
+                });
+                this.log.debug('Lese getHomeWorksFor ende');
+                // this.log.debug('Lese Exams start');
+                // endDate = new Date();
+                // endDate.setMonth(endDate.getMonth() + 1);
+                // this.log.debug('Lese Exams endDate: ' + endDate);
+                // this.log.debug('Class ID: ' + this.class_id);
+                // untis.getExamsForRange(new Date(), endDate, this.class_id, true).then(async (exams) => {
+                //     this.log.debug('Get Exams from API')
+                //     this.log.debug(JSON.stringify(exams));
+                //     //this.setHomework(homework);
+                // }).catch(async error => {
+                //     this.log.info('Cannot read Exams');
+                //     this.log.debug(error);
+                // });
+                // this.log.debug('Lese Exams ende');
                 this.timetableDate = new Date(); //info timetbale is for today
                 //Start the loop, we have an session
                 this.log.debug('Lese Timetable 0');
@@ -243,6 +302,188 @@ class Webuntis extends utils.Adapter {
         }
         // Next round in one Hour
         this.startHourSchedule();
+    }
+    async setHomework(fromAPI) {
+        this.log.debug("setHomework 1");
+        let index = 0;
+        var homeworkJson = JSON.stringify(fromAPI);
+        const obj = JSON.parse(homeworkJson);
+        //Alle Lessions übernehmen
+        let lessons = obj.lessons;
+        for (const lesson of lessons) {
+            //ID
+            await this.setObjectNotExistsAsync('lessons.' + lesson.id, {
+                type: 'folder',
+                common: {
+                    name: 'id',
+                    role: 'value',
+                    type: 'string',
+                    write: false,
+                    read: true,
+                },
+                native: {},
+            }).catch((error) => {
+                this.log.error(error);
+            });
+            //await this.setStateAsync('lessons.id', lesson.id, true);
+            //lessonType
+            await this.setObjectNotExistsAsync('lessons.' + lesson.id + '.type', {
+                type: 'state',
+                common: {
+                    name: 'type',
+                    role: 'value',
+                    type: 'string',
+                    write: false,
+                    read: true,
+                },
+                native: {},
+            }).catch((error) => {
+                this.log.error(error);
+            });
+            await this.setStateAsync('lessons.' + lesson.id + '.type', lesson.lessonType, true);
+            //Kürzel
+            await this.setObjectNotExistsAsync('lessons.' + lesson.id + '.subject', {
+                type: 'state',
+                common: {
+                    name: 'subject',
+                    role: 'value',
+                    type: 'string',
+                    write: false,
+                    read: true,
+                },
+                native: {},
+            }).catch((error) => {
+                this.log.error(error);
+            });
+            await this.setStateAsync('lessons.' + lesson.id + '.subject', lesson.subject, true);
+            //Subject Translation
+            await this.setObjectNotExistsAsync('lessons.' + lesson.id + '.subjectTranslation', {
+                type: 'state',
+                common: {
+                    name: 'subjectTranslation',
+                    role: 'value',
+                    type: 'string',
+                    write: false,
+                    read: true,
+                },
+                native: {},
+            }).catch((error) => {
+                this.log.error(error);
+            });
+            await this.setStateAsync('lessons.' + lesson.id + '.subjectTranslation', this.translateByString(lesson.subject), true);
+        }
+        let homeworks = obj.homeworks;
+        this.log.debug("setHomework json: " + homeworkJson);
+        for (const homework of homeworks) {
+            //Datum
+            await this.setObjectNotExistsAsync('homework.' + index + '.date', {
+                type: 'state',
+                common: {
+                    name: 'date',
+                    role: 'value',
+                    type: 'string',
+                    write: false,
+                    read: true,
+                },
+                native: {},
+            }).catch((error) => {
+                this.log.error(error);
+            });
+            await this.setStateAsync('homework.' + index + '.date', homework.date, true);
+            //Fälligkeit
+            await this.setObjectNotExistsAsync('homework.' + index + '.dueDate', {
+                type: 'state',
+                common: {
+                    name: 'dueDate',
+                    role: 'value',
+                    type: 'string',
+                    write: false,
+                    read: true,
+                },
+                native: {},
+            }).catch((error) => {
+                this.log.error(error);
+            });
+            await this.setStateAsync('homework.' + index + '.dueDate', homework.dueDate, true);
+            //Text
+            await this.setObjectNotExistsAsync('homework.' + index + '.text', {
+                type: 'state',
+                common: {
+                    name: 'text',
+                    role: 'value',
+                    type: 'string',
+                    write: false,
+                    read: true,
+                },
+                native: {},
+            }).catch((error) => {
+                this.log.error(error);
+            });
+            await this.setStateAsync('homework.' + index + '.text', homework.text, true);
+            //lessonId
+            await this.setObjectNotExistsAsync('homework.' + index + '.lessonId', {
+                type: 'state',
+                common: {
+                    name: 'lessonId',
+                    role: 'value',
+                    type: 'string',
+                    write: false,
+                    read: true,
+                },
+                native: {},
+            }).catch((error) => {
+                this.log.error(error);
+            });
+            await this.setStateAsync('homework.' + index + '.lessonId', homework.lessonId, true);
+            //Id
+            await this.setObjectNotExistsAsync('homework.' + index + '.id', {
+                type: 'state',
+                common: {
+                    name: 'id',
+                    role: 'value',
+                    type: 'string',
+                    write: false,
+                    read: true,
+                },
+                native: {},
+            }).catch((error) => {
+                this.log.error(error);
+            });
+            await this.setStateAsync('homework.' + index + '.id', homework.id, true);
+            //Fach
+            for (const lesson of lessons) {
+                if (lesson.id == homework.lessonId) {
+                    //Id
+                    await this.setObjectNotExistsAsync('homework.' + index + '.Fach', {
+                        type: 'state',
+                        common: {
+                            name: 'Fach',
+                            role: 'value',
+                            type: 'string',
+                            write: false,
+                            read: true,
+                        },
+                        native: {},
+                    }).catch((error) => {
+                        this.log.error(error);
+                    });
+                    await this.setStateAsync('homework.' + index + '.Fach', this.translateByString(lesson.subject), true);
+                    break;
+                }
+            }
+            /*
+attachments
+completed
+remark
+            */
+            index++;
+        }
+        //     for(const homework of fromAPI) {
+        //         
+        //         homework.dueDate
+        //         index++;
+        //    }
+        this.log.debug("setHomework ende");
     }
     //FUnktion for Inbox Data
     async setInbox(messages) {
@@ -387,7 +628,7 @@ class Webuntis extends utils.Adapter {
             }).catch((error) => {
                 this.log.error(error);
             });
-            await this.setStateAsync(dayindex + '.' + index.toString() + '.startTime', webuntis_1.default.convertUntisTime(element.startTime, this.timetableDate).toString(), true);
+            await this.setStateAsync(dayindex + '.' + index.toString() + '.startTime', webuntis_1.WebUntis.convertUntisTime(element.startTime, this.timetableDate).toString(), true);
             //save mintime
             if (minTime > element.startTime)
                 minTime = element.startTime;
@@ -404,7 +645,7 @@ class Webuntis extends utils.Adapter {
             }).catch((error) => {
                 this.log.error(error);
             });
-            await this.setStateAsync(dayindex + '.' + index.toString() + '.endTime', webuntis_1.default.convertUntisTime(element.endTime, this.timetableDate).toString(), true);
+            await this.setStateAsync(dayindex + '.' + index.toString() + '.endTime', webuntis_1.WebUntis.convertUntisTime(element.endTime, this.timetableDate).toString(), true);
             //save maxtime
             if (maxTime < element.endTime)
                 maxTime = element.endTime;
@@ -504,7 +745,7 @@ class Webuntis extends utils.Adapter {
             }).catch((error) => {
                 this.log.error(error);
             });
-            await this.setStateAsync(dayindex + '.minTime', webuntis_1.default.convertUntisTime(minTime, this.timetableDate).toString(), true);
+            await this.setStateAsync(dayindex + '.minTime', webuntis_1.WebUntis.convertUntisTime(minTime, this.timetableDate).toString(), true);
             await this.setObjectNotExistsAsync(dayindex + '.maxTime', {
                 type: 'state',
                 common: {
@@ -518,7 +759,7 @@ class Webuntis extends utils.Adapter {
             }).catch((error) => {
                 this.log.error(error);
             });
-            await this.setStateAsync(dayindex + '.maxTime', webuntis_1.default.convertUntisTime(maxTime, this.timetableDate).toString(), true);
+            await this.setStateAsync(dayindex + '.maxTime', webuntis_1.WebUntis.convertUntisTime(maxTime, this.timetableDate).toString(), true);
             await this.setObjectNotExistsAsync(dayindex + '.exceptions', {
                 type: 'state',
                 common: {
